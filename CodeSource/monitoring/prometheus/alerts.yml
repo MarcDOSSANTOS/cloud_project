@@ -1,0 +1,90 @@
+groups:
+  - name: service_health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.job }} ({{ $labels.instance }}) is unreachable since more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: >
+          sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m])) by (job)
+          /
+          sum(rate(http_server_requests_seconds_count[5m])) by (job)
+          > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High 5xx error rate on {{ $labels.job }}"
+          description: "{{ $labels.job }} has more than 5% error rate (current: {{ $value | humanizePercentage }})."
+
+  - name: latency
+    rules:
+      - alert: HighResponseTime
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(http_server_requests_seconds_bucket[5m])) by (le, job)
+          ) > 2
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High P95 latency on {{ $labels.job }}"
+          description: "{{ $labels.job }} P95 latency is above 2s (current: {{ $value | humanizeDuration }})."
+
+      - alert: GatewayHighLatency
+        expr: >
+          histogram_quantile(0.95,
+            sum(rate(techshop_gateway_http_request_duration_seconds_bucket[5m])) by (le)
+          ) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API Gateway P95 latency above 1s"
+          description: "API Gateway P95 response time is {{ $value | humanizeDuration }}."
+
+  - name: resources
+    rules:
+      - alert: HighMemoryUsage
+        expr: >
+          process_resident_memory_bytes / 1024 / 1024 > 512
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage on {{ $labels.job }}"
+          description: "{{ $labels.job }} is using {{ $value | humanize }}MB of memory."
+
+      - alert: JvmHeapCritical
+        expr: >
+          jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"} > 0.9
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "JVM heap critical on {{ $labels.job }}"
+          description: "{{ $labels.job }} heap usage is above 90% (current: {{ $value | humanizePercentage }})."
+
+      - alert: HighCpuUsage
+        expr: rate(process_cpu_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.job }}"
+          description: "{{ $labels.job }} CPU usage is above 80% (current: {{ $value | humanize }}%)."
+
+      - alert: GoroutineLeak
+        expr: go_goroutines{job="order-service"} > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Possible goroutine leak on order-service"
+          description: "Order service has {{ $value }} goroutines running."

@@ -204,7 +204,7 @@ services:
       order-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -236,6 +236,90 @@ services:
     networks:
       - techshop-network
 
+  # ==========================================
+  # Monitoring
+  # ==========================================
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: techshop-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    networks:
+      - techshop-network
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: techshop-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - techshop-network
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: techshop-alertmanager
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/alertmanager:/etc/alertmanager:ro
+    ports:
+      - "9093:9093"
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    networks:
+      - techshop-network
+
+  # ==========================================
+  # Centralisation des logs (Loki + Promtail)
+  # ==========================================
+
+  loki:
+    image: grafana/loki:3.3.0
+    container_name: techshop-loki
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - techshop-network
+
+  promtail:
+    image: grafana/promtail:3.3.0
+    container_name: techshop-promtail
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+    networks:
+      - techshop-network
+
 # ==========================================
 # Volumes persistants
 # ==========================================
@@ -245,6 +329,12 @@ volumes:
   redis_data:
     driver: local
   rabbitmq_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  loki_data:
     driver: local
 
 # ==========================================

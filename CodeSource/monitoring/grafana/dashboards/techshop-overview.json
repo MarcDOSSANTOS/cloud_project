@@ -1,0 +1,145 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Services Health Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [{ "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } }, "type": "value" }],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "up{job=\"api-gateway\"}", "legendFormat": "API Gateway", "refId": "A" },
+        { "expr": "up{job=\"user-service\"}", "legendFormat": "User Service", "refId": "B" },
+        { "expr": "up{job=\"product-service\"}", "legendFormat": "Product Service", "refId": "C" },
+        { "expr": "up{job=\"order-service\"}", "legendFormat": "Order Service", "refId": "D" }
+      ]
+    },
+    {
+      "title": "Request Rate (req/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "reqps", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "rate(techshop_gateway_http_request_duration_seconds_count[5m])", "legendFormat": "API Gateway", "refId": "A" },
+        { "expr": "rate(http_requests_total{job=\"user-service\"}[5m])", "legendFormat": "User Service", "refId": "B" },
+        { "expr": "rate(http_server_requests_seconds_count{job=\"product-service\"}[5m])", "legendFormat": "Product Service", "refId": "C" },
+        { "expr": "rate(http_requests_total{job=\"order-service\"}[5m])", "legendFormat": "Order Service", "refId": "D" }
+      ]
+    },
+    {
+      "title": "Response Time P95 (ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "ms", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, rate(techshop_gateway_http_request_duration_seconds_bucket[5m])) * 1000", "legendFormat": "API Gateway P95", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, rate(http_server_requests_seconds_bucket{job=\"product-service\"}[5m])) * 1000", "legendFormat": "Product Service P95", "refId": "B" }
+      ]
+    },
+    {
+      "title": "HTTP Error Rate (4xx + 5xx)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 15 }, "color": { "mode": "fixed", "fixedColor": "red" } },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "sum(rate(http_server_requests_seconds_count{status=~\"4..|5..\", job=\"product-service\"}[5m])) / sum(rate(http_server_requests_seconds_count{job=\"product-service\"}[5m])) * 100", "legendFormat": "Product Service", "refId": "A" }
+      ]
+    },
+    {
+      "title": "CPU Usage per Service",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "percent", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "rate(process_cpu_seconds_total{job=\"api-gateway\"}[5m]) * 100", "legendFormat": "API Gateway", "refId": "A" },
+        { "expr": "rate(process_cpu_seconds_total{job=\"user-service\"}[5m]) * 100", "legendFormat": "User Service", "refId": "B" },
+        { "expr": "rate(process_cpu_seconds_total{job=\"product-service\"}[5m]) * 100", "legendFormat": "Product Service", "refId": "C" },
+        { "expr": "rate(process_cpu_seconds_total{job=\"order-service\"}[5m]) * 100", "legendFormat": "Order Service", "refId": "D" }
+      ]
+    },
+    {
+      "title": "Memory Usage per Service",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": { "unit": "bytes", "custom": { "lineWidth": 2, "fillOpacity": 10 } },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "process_resident_memory_bytes{job=\"api-gateway\"}", "legendFormat": "API Gateway", "refId": "A" },
+        { "expr": "process_resident_memory_bytes{job=\"user-service\"}", "legendFormat": "User Service", "refId": "B" },
+        { "expr": "jvm_memory_used_bytes{area=\"heap\", job=\"product-service\"}", "legendFormat": "Product Service (Heap)", "refId": "C" },
+        { "expr": "go_memstats_alloc_bytes{job=\"order-service\"}", "legendFormat": "Order Service", "refId": "D" }
+      ]
+    },
+    {
+      "title": "JVM Heap Usage (Product Service)",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "min": 0, "max": 1,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.7 }, { "color": "red", "value": 0.9 }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "jvm_memory_used_bytes{area=\"heap\", job=\"product-service\"} / jvm_memory_max_bytes{area=\"heap\", job=\"product-service\"}", "legendFormat": "Heap %", "refId": "A" }
+      ]
+    },
+    {
+      "title": "Go Goroutines (Order Service)",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 100 }, { "color": "red", "value": 500 }] }
+        },
+        "overrides": []
+      },
+      "targets": [
+        { "expr": "go_goroutines{job=\"order-service\"}", "legendFormat": "Goroutines", "refId": "A" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["techshop", "microservices"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "TechShop - Overview",
+  "uid": "techshop-overview",
+  "version": 1
+}

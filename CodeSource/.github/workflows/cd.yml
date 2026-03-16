@@ -1,0 +1,178 @@
+# ============================================
+# TechShop - Pipeline CD (Déploiement Continu)
+# Phase 4 : Deploy sur environnement cible
+# ============================================
+
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/techshop
+
+jobs:
+  # ==========================================
+  # 1. Déploiement Staging
+  # ==========================================
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    environment:
+      name: staging
+      url: http://staging.techshop.example.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag from triggering commit
+        run: echo "IMAGE_TAG=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
+
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            cd /opt/techshop
+
+            # Login au registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+            # Pull des nouvelles images
+            docker compose pull
+
+            # Déploiement avec zero-downtime
+            docker compose up -d --remove-orphans
+
+            # Attente des health checks
+            echo "Waiting for services to be healthy..."
+            sleep 30
+            docker compose ps
+
+            # Vérification santé des services
+            curl -f http://localhost:3000/api || exit 1
+            curl -f http://localhost:80/health || exit 1
+            echo "Staging deployment successful"
+
+      - name: Run smoke tests
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          script: |
+            # Smoke tests basiques
+            echo "Running smoke tests..."
+            curl -sf http://localhost:3000/api > /dev/null && echo "API Gateway: OK" || echo "API Gateway: FAIL"
+            curl -sf http://localhost:80/health > /dev/null && echo "Frontend: OK" || echo "Frontend: FAIL"
+            curl -sf http://localhost:8001/health > /dev/null && echo "User Service: OK" || echo "User Service: FAIL"
+            curl -sf http://localhost:8002/actuator/health > /dev/null && echo "Product Service: OK" || echo "Product Service: FAIL"
+            curl -sf http://localhost:8003/health > /dev/null && echo "Order Service: OK" || echo "Order Service: FAIL"
+
+  # ==========================================
+  # 2. Déploiement Production (approbation manuelle)
+  # ==========================================
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment:
+      name: production
+      url: http://techshop.example.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag from triggering commit
+        run: echo "IMAGE_TAG=${{ github.event.workflow_run.head_sha }}" >> $GITHUB_ENV
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /opt/techshop
+
+            # Login au registry
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+
+            # Backup de la configuration actuelle
+            docker compose config > /opt/techshop/backups/docker-compose-$(date +%Y%m%d-%H%M%S).yml
+
+            # Pull des nouvelles images
+            docker compose pull
+
+            # Déploiement rolling update
+            docker compose up -d --remove-orphans
+
+            # Attente des health checks
+            echo "Waiting for services to be healthy..."
+            sleep 45
+            docker compose ps
+
+            # Vérification santé des services
+            curl -f http://localhost:3000/api || exit 1
+            curl -f http://localhost:80/health || exit 1
+            echo "Production deployment successful"
+
+      - name: Verify production health
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            echo "Running production health checks..."
+            curl -sf http://localhost:3000/api > /dev/null && echo "API Gateway: OK" || exit 1
+            curl -sf http://localhost:80/health > /dev/null && echo "Frontend: OK" || exit 1
+            curl -sf http://localhost:8001/health > /dev/null && echo "User Service: OK" || exit 1
+            curl -sf http://localhost:8002/actuator/health > /dev/null && echo "Product Service: OK" || exit 1
+            curl -sf http://localhost:8003/health > /dev/null && echo "Order Service: OK" || exit 1
+            echo "All production health checks passed"
+
+  # ==========================================
+  # 3. Rollback automatique en cas d'échec
+  # ==========================================
+
+  rollback-production:
+    name: Rollback Production
+    runs-on: ubuntu-latest
+    needs: deploy-production
+    if: failure()
+    environment:
+      name: production
+    steps:
+      - name: Rollback to previous version
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /opt/techshop
+            echo "Rolling back to previous version..."
+
+            # Restaurer la dernière config de backup
+            LATEST_BACKUP=$(ls -t /opt/techshop/backups/docker-compose-*.yml | head -1)
+            if [ -n "$LATEST_BACKUP" ]; then
+              docker compose -f "$LATEST_BACKUP" up -d --remove-orphans
+              echo "Rollback completed using: $LATEST_BACKUP"
+            else
+              echo "No backup found, manual intervention required"
+              exit 1
+            fi
+
+      - name: Notify rollback
+        if: always()
+        run: |
+          echo "::warning::Production deployment failed and was rolled back."
+          echo "Manual verification required."

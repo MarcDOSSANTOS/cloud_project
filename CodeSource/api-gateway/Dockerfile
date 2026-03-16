@@ -22,8 +22,8 @@ WORKDIR /app
 COPY package*.json ./
 
 # npm ci : installe les versions EXACTES du lock file
-# --only=production : exclut les devDependencies (nodemon, jest)
-RUN npm ci --only=production
+# --omit=dev : exclut les devDependencies (nodemon, jest)
+RUN npm ci --omit=dev
 
 # ==============================================
 # Étape 2 : Image de production
