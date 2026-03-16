@@ -1,0 +1,34 @@
+# ============================================
+# Kustomize - Overlay Staging
+# ============================================
+# Environnement de pré-production :
+# - 2 réplicas (même config que la prod)
+# - Ressources modérées
+# - Certificat TLS staging
+# ============================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: techshop
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: staging
+
+patches:
+  # Ingress staging
+  - target:
+      kind: Ingress
+      name: techshop-ingress
+    patch: |
+      - op: replace
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+        value: letsencrypt-staging
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: staging.techshop.example.com
+      - op: replace
+        path: /spec/rules/0/host
+        value: staging.techshop.example.com

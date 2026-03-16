@@ -1,0 +1,48 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: techshop-ingress
+  namespace: techshop
+  labels:
+    app.kubernetes.io/name: ingress
+    app.kubernetes.io/part-of: techshop
+  annotations:
+    # Nginx Ingress Controller
+    kubernetes.io/ingress.class: nginx
+    # Redirection HTTP → HTTPS
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # Taille max des requêtes (upload de fichiers)
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    # Timeouts
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "60"
+    # Rate limiting
+    nginx.ingress.kubernetes.io/limit-rps: "50"
+    # cert-manager pour le certificat TLS automatique
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - techshop.example.com
+      secretName: techshop-tls-secret
+  rules:
+    - host: techshop.example.com
+      http:
+        paths:
+          # Routes API → API Gateway
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 3000
+          # Routes Frontend → Nginx
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

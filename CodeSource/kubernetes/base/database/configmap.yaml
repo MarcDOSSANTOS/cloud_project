@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-config
+  namespace: techshop
+  labels:
+    app.kubernetes.io/name: database
+    app.kubernetes.io/part-of: techshop
+    app.kubernetes.io/component: database
+data:
+  POSTGRES_DB: techshop
+  POSTGRES_USER: techshop
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-init
+  namespace: techshop
+  labels:
+    app.kubernetes.io/name: database
+    app.kubernetes.io/part-of: techshop
+    app.kubernetes.io/component: database
+data:
+  init.sql: |
+    -- Placeholder: Init SQL scripts would be loaded from the database/init directory.
+    -- Add your database initialization SQL statements here.

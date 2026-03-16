@@ -1,0 +1,22 @@
+# Binaire compilé local
+order-service
+
+# IDE
+.vscode
+.idea
+
+# Fichiers d'environnement
+.env
+.env.*
+
+# Documentation
+*.md
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

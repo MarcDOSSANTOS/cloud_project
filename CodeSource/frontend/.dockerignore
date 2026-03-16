@@ -1,0 +1,29 @@
+# Dépendances installées dans le conteneur
+node_modules
+
+# Build local (on rebuild dans le conteneur)
+build/
+
+# Fichiers d'environnement
+.env
+.env.*
+!.env.example
+
+# IDE et système
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# Tests et documentation
+coverage/
+*.md
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

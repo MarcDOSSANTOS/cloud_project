@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: techshop
+  labels:
+    app.kubernetes.io/name: techshop
+    app.kubernetes.io/part-of: techshop

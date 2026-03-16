@@ -1,0 +1,90 @@
+# ============================================
+# RBAC - Contrôle d'accès TechShop
+# ============================================
+
+# ServiceAccount pour les microservices applicatifs
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: techshop-app
+  namespace: techshop
+  labels:
+    app.kubernetes.io/part-of: techshop
+
+---
+# Role : permissions minimales pour les pods applicatifs
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: techshop-app-role
+  namespace: techshop
+  labels:
+    app.kubernetes.io/part-of: techshop
+rules:
+  # Lire les ConfigMaps et Secrets
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  # Lire les Services (pour la découverte)
+  - apiGroups: [""]
+    resources: ["services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+
+---
+# RoleBinding : associer le rôle au ServiceAccount
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: techshop-app-binding
+  namespace: techshop
+  labels:
+    app.kubernetes.io/part-of: techshop
+subjects:
+  - kind: ServiceAccount
+    name: techshop-app
+    namespace: techshop
+roleRef:
+  kind: Role
+  name: techshop-app-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# ServiceAccount pour l'infrastructure (DB, Redis, RabbitMQ)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: techshop-infra
+  namespace: techshop
+  labels:
+    app.kubernetes.io/part-of: techshop
+
+---
+# Role infra : permissions minimales
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: techshop-infra-role
+  namespace: techshop
+  labels:
+    app.kubernetes.io/part-of: techshop
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: techshop-infra-binding
+  namespace: techshop
+  labels:
+    app.kubernetes.io/part-of: techshop
+subjects:
+  - kind: ServiceAccount
+    name: techshop-infra
+    namespace: techshop
+roleRef:
+  kind: Role
+  name: techshop-infra-role
+  apiGroup: rbac.authorization.k8s.io

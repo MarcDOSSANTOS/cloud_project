@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: techshop-config
+  namespace: techshop
+  labels:
+    app.kubernetes.io/name: techshop-config
+    app.kubernetes.io/part-of: techshop
+data:
+  JWT_SECRET: techshop-secret-key-change-in-production
+  DATABASE_URL: postgresql://techshop:techshop_password@database:5432/techshop
+  DB_HOST: database
+  DB_PORT: "5432"
+  DB_NAME: techshop
+  REDIS_HOST: cache
+  REDIS_PORT: "6379"
+  REDIS_URL: redis://cache:6379
+  RABBITMQ_URL: amqp://guest:guest@message-queue:5672/
+  USER_SERVICE_URL: http://user-service:8001
+  PRODUCT_SERVICE_URL: http://product-service:8002
+  ORDER_SERVICE_URL: http://order-service:8003

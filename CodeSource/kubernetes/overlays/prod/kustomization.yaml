@@ -1,0 +1,93 @@
+# ============================================
+# Kustomize - Overlay Production
+# ============================================
+# Environnement de production :
+# - Réplicas augmentés pour la haute disponibilité
+# - Ressources maximales
+# - Certificat TLS production (Let's Encrypt)
+# - Anti-affinité pour distribuer les pods sur plusieurs nœuds
+# ============================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: techshop
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: production
+
+patches:
+  # API Gateway : 3 réplicas min en prod + anti-affinité
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 15
+
+  # Frontend : 3 réplicas min
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 3
+
+  # Order Service : plus de réplicas
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: order-service
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 3
+      - op: replace
+        path: /spec/maxReplicas
+        value: 12
+
+  # Product Service : plus de mémoire pour la JVM
+  - target:
+      kind: Deployment
+      name: product-service
+    patch: |
+      - op: add
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 768Mi
+      - op: add
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 384Mi
+
+  # Ingress production
+  - target:
+      kind: Ingress
+      name: techshop-ingress
+    patch: |
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: techshop.example.com
+      - op: replace
+        path: /spec/rules/0/host
+        value: techshop.example.com
+
+  # PVC plus grands en production
+  - target:
+      kind: PersistentVolumeClaim
+      name: redis-data
+    patch: |
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 10Gi

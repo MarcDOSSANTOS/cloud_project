@@ -1,0 +1,25 @@
+# Dépendances installées dans le conteneur
+node_modules
+npm-debug.log*
+
+# IDE
+.vscode
+.idea
+
+# Fichiers d'environnement (secrets)
+.env
+.env.*
+!.env.example
+
+# Tests et documentation
+coverage/
+*.md
+
+# Git
+.git
+.gitignore
+
+# Docker (éviter récursion)
+Dockerfile
+docker-compose*.yml
+.dockerignore

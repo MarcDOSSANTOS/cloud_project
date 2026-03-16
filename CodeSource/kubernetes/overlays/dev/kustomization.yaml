@@ -1,0 +1,89 @@
+# ============================================
+# Kustomize - Overlay Développement
+# ============================================
+# Ajustements pour l'environnement de développement :
+# - 1 réplica par service (économie de ressources)
+# - Ressources réduites
+# - Logs en mode debug
+# ============================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: techshop
+
+resources:
+  - ../../base
+
+# Préfixe pour distinguer les environnements
+namePrefix: ""
+
+# Labels communs à toutes les ressources
+commonLabels:
+  environment: dev
+
+# Patch : réduire les réplicas à 1 en dev
+patches:
+  # User Service : 1 réplica
+  - target:
+      kind: Deployment
+      name: user-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Product Service : 1 réplica
+  - target:
+      kind: Deployment
+      name: product-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Order Service : 1 réplica
+  - target:
+      kind: Deployment
+      name: order-service
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # API Gateway : 1 réplica
+  - target:
+      kind: Deployment
+      name: api-gateway
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Frontend : 1 réplica
+  - target:
+      kind: Deployment
+      name: frontend
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  # Désactiver les HPA en dev
+  - target:
+      kind: HorizontalPodAutoscaler
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+  # Ingress : utiliser le staging issuer pour les certificats
+  - target:
+      kind: Ingress
+      name: techshop-ingress
+    patch: |
+      - op: replace
+        path: /metadata/annotations/cert-manager.io~1cluster-issuer
+        value: letsencrypt-staging
+      - op: replace
+        path: /spec/tls/0/hosts/0
+        value: dev.techshop.example.com
+      - op: replace
+        path: /spec/rules/0/host
+        value: dev.techshop.example.com

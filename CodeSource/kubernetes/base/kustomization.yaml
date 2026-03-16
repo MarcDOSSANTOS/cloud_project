@@ -1,0 +1,50 @@
+# ============================================
+# Kustomize - Configuration de base TechShop
+# ============================================
+# Ce fichier référence toutes les ressources Kubernetes
+# de base. Les overlays (dev, staging, prod) héritent
+# de cette configuration et la personnalisent.
+#
+# Usage :
+#   kubectl apply -k kubernetes/base/              → Appliquer la base
+#   kubectl apply -k kubernetes/overlays/dev/      → Appliquer l'overlay dev
+#   kubectl apply -k kubernetes/overlays/prod/     → Appliquer l'overlay prod
+# ============================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: techshop
+
+# Ressources communes
+resources:
+  # Namespace
+  - namespace.yaml
+
+  # RBAC
+  - rbac.yaml
+
+  # Configuration partagée
+  - configmap.yaml
+  - secret.yaml
+
+  # Infrastructure
+  - database
+  - cache
+  - message-queue
+
+  # Services applicatifs
+  - user-service
+  - product-service
+  - order-service
+  - api-gateway
+  - frontend
+
+  # Réseau
+  - ingress.yaml
+  - network-policies.yaml
+  - cluster-issuer.yaml
+
+# Labels communs appliqués à toutes les ressources
+commonLabels:
+  app.kubernetes.io/part-of: techshop
+  app.kubernetes.io/managed-by: kustomize

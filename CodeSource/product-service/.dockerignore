@@ -1,0 +1,23 @@
+# Build local Maven (on rebuild dans le conteneur)
+target/
+
+# IDE
+.vscode
+.idea
+*.iml
+
+# Fichiers d'environnement
+.env
+.env.*
+
+# Documentation
+*.md
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

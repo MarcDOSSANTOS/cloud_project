@@ -1,0 +1,28 @@
+# Environnement virtuel Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Fichiers d'environnement
+.env
+.env.*
+
+# IDE
+.vscode
+.idea
+
+# Tests et documentation
+tests/
+*.md
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore

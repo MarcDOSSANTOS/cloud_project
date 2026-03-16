@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+api-gateway/node_modules/
+
+# Build outputs
+frontend/build/
+product-service/target/
+order-service/order-service
+
+# Environment
+.env
+*.env.local
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Java
+*.class
+*.jar
+!product-service/target/*.jar
+
+# Docker
+docker-compose.override.yml
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Logs
+*.log
