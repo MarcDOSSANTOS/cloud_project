@@ -16,7 +16,7 @@
     "morgan": "^1.10.0",
     "express-rate-limit": "^7.1.4",
     "jsonwebtoken": "^9.0.2",
-    "axios": "^1.6.2",
+    "axios": "^1.15.0",
     "dotenv": "^16.3.1",
     "prom-client": "^15.1.0"
   },
